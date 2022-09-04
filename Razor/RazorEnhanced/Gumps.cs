@@ -695,20 +695,21 @@ namespace RazorEnhanced
                 else
                 {
                    Gumps.m_incomingData[gumpid] = new IncomingGumpData();
-                        
-                    while (subdelay > 0)
-                    {
-                        if (World.Player.HasGump == true && World.Player.CurrentGumpI == gumpid)
-                        {
-                            found = true;
-                            break;
-                        }
-                        else
-                        {
-                            Thread.Sleep(2);
-                            subdelay -= 2;
-                        }
-                    }
+
+                   do
+                   {
+                       if (World.Player.HasGump == true && World.Player.CurrentGumpI == gumpid)
+                       {
+                           found = true;
+                           break;
+                       }
+                       else
+                       {
+                           Thread.Sleep(2);
+                           subdelay -= 2;
+                       }
+                   } while (subdelay > 0);
+
                 }
             }
             return found;
