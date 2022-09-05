@@ -3392,12 +3392,12 @@ namespace Assistant
                     {
                         string tempstring = pComp.ReadUnicodeString(len);
                         stringlistparse[x1] = tempstring;
-                        x1++;
                     }
                     else
                     {
                         stringlistparse[x1] = "";
                     }
+                    x1++;
                 }
 
                 if (TryParseGump(layout, out string[] gumpPieces))
