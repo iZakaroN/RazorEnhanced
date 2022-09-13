@@ -275,6 +275,7 @@ namespace RazorEnhanced
                 m_Run = run;
                 m_AutoStart = autostart;
                 m_Thread = new Thread(AsyncStart);
+                m_Thread.SetApartmentState(ApartmentState.STA);
             }
 
             internal void Start()
@@ -434,6 +435,7 @@ namespace RazorEnhanced
             internal void Reset()
             {
                 m_Thread = new Thread(AsyncStart);
+                m_Thread.SetApartmentState(ApartmentState.STA);
                 m_Run = false;
             }
 
