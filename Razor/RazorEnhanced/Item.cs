@@ -310,7 +310,7 @@ namespace RazorEnhanced
                     switch (number)
                     {
                         case 1072788:
-                            return 1;       // Peso 1 se cliloc è 1072788
+                            return 1;       // Peso 1 se cliloc ï¿½ 1072788
                         case 1072789:
                             try
                             {
@@ -1857,15 +1857,10 @@ namespace RazorEnhanced
                             if (content[i].Args == null)  // Props exist but not have value
                                 return 1;
 
-                            try
-                            {
-                                return Convert.ToSingle(Language.ParsePropsCliloc(content[i].Args), CultureInfo.InvariantCulture);
-                            }
-                            catch
-                            {
-                                return 1;  // Conversion error
-                            }
-
+                            if (float.TryParse(Language.ParsePropsCliloc(content[i].Args), NumberStyles.Any,
+                                    CultureInfo.InvariantCulture, out var result))
+                                return result;
+                            return 1;  // Conversion error
                         }
                     }
                 }
