@@ -882,7 +882,7 @@ namespace RazorEnhanced
 
         List<Tile> m_Path;
 
-        PathFinding(List<Tile> path)
+        public PathFinding(List<Tile> path)
         {
             m_Path = path;
         }
