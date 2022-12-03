@@ -28,10 +28,13 @@ namespace RazorEnhanced
         public Keys HotKey;
         /// <summary>@nodoc</summary>
         public double Timestamp;
+        /// <summary>@nodoc</summary>
+        public static event Action<Keys> KeyEvent;
 
         /// <summary>@nodoc</summary>
         public static HotKeyEvent AddEvent(Keys k) {
-        LastEvent = new HotKeyEvent(k);
+            LastEvent = new HotKeyEvent(k);
+            KeyEvent?.Invoke(k);
             return LastEvent;
         }
 
