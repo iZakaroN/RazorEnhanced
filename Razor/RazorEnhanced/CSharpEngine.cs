@@ -6,6 +6,7 @@ using System.Reflection;
 using Microsoft.Scripting;
 using Microsoft.CodeDom.Providers.DotNetCompilerPlatform;
 using System.Linq;
+using System.Web.UI;
 
 namespace RazorEnhanced
 {
@@ -95,27 +96,25 @@ namespace RazorEnhanced
             return list;
         }
 
-        private bool ManageCompileResult(CompilerResults results, ref List<string> errorwarnings)
+        private bool ManageCompileResult(CompilerResults results, List<string> errors)
         {
             bool has_error = true;
 
             if (results.Errors.HasErrors)
             {
-                foreach (CompilerError error in results.Errors)
+                foreach (var error in results.Errors.OfType<CompilerError>().Where(x => !x.IsWarning))
                 {
-                    errorwarnings.Add(String.Format("Error ({0}) at line {1}: {2}", error.ErrorNumber, error.Line, error.ErrorText));
+                    errors.Add($"Error ({error.ErrorNumber}) in {error.FileName} at line {error.Line}: {error.ErrorText}");
                 }
             }
             else
-            {
                 has_error = false;
 
-                if (results.Errors.HasWarnings)
+            if (results.Errors.HasWarnings)
+            {
+                foreach (var warning in results.Errors.OfType<CompilerError>().Where(x => x.IsWarning))
                 {
-                    foreach (CompilerError warning in results.Errors)
-                    {
-                        errorwarnings.Add(String.Format("Warning ({0}) at line {1}: {2}", warning.ErrorNumber, warning.Line, warning.ErrorText));
-                    }
+                    errors.Add($"Warning ({warning.ErrorNumber}) in {warning.FileName} at line {warning.Line}: {warning.ErrorText}");
                 }
             }
             return has_error;
@@ -128,68 +127,58 @@ namespace RazorEnhanced
         /// </summary>
         /// <param name="sourceFile">Full path of the source file</param>
         /// <param name="filesList">List of all files that must be compiled (it's a recursive list)</param>
-        /// <param name="errorwarnings">List of error and warnings</param>
-        private void FindAllIncludedCSharpScript(string sourceFile, ref List<string> filesList, ref List<string> errorwarnings)
+        /// <param name="errors">List of error and warnings</param>
+        private static void FindAllIncludedCSharpScript(string sourceFile, HashSet<string> filesList, List<string> errors)
         {
             const string directive = "//#import";
 
             if (!File.Exists(sourceFile))
             {
-                errorwarnings.Add(string.Format("Error on directive {0}. Unable to find {1}", directive, sourceFile));
+                errors.Add($"Error on directive {directive}. Unable to find {sourceFile}");
                 return;
             }
 
-            string basepath = Path.GetDirectoryName(sourceFile); // BasePath of the imported file
+            string basePath = Path.GetDirectoryName(sourceFile); // BasePath of the imported file
             filesList.Add(sourceFile);
 
             // Searching all the lines with the directive
-            List<string> imports = new();
+            var lineNumber = 0;
             foreach (string line in File.ReadAllLines(sourceFile))
             {
+                lineNumber++;
+                // If namespace directive is found stop searching
+                if (line.ToLower().Contains("namespace")) 
+                    break;
                 if (line.Contains(directive))
                 {
-                    string file = line.Replace(directive, "").Trim();
-                    imports.Add(file);
-                }
+                    var import = line.Replace(directive, "").Trim();
+                    var file = ExtractFile(import, basePath, directive, lineNumber, errors);
 
-                // If namespace directive is found stop searching
-                if (line.ToLower().Contains("namespace")) { break; }
+                    if (!filesList.Contains(file))
+                        FindAllIncludedCSharpScript(file, filesList, errors);
+                }
             }
 
             // If nothing is found return only the main file
-            if (imports.Count == 0) { return; }
+        }
 
-            // Parsing each line
-            int lineCnt = 0;
-            foreach (string line in imports)
+        private static string ExtractFile(string import, string basePath, string directive, int lineNumber, List<string> errors)
+        {
+            if (import.StartsWith("<") && import.EndsWith(">"))
             {
-                string file = "";
-                lineCnt++; // Count lines from 1
-                if (line.StartsWith("<") && line.EndsWith(">"))
-                {
-                    // Relative path. Adding base folder
-                    file = line.Substring(1, line.Length - 2); // Removes < >
-                    file = Path.GetFullPath(Path.Combine(basepath, file)); // Basepath is Scripts folder
-                }
-                else if (line.StartsWith("\"") && line.EndsWith("\""))
-                {
-                    // Absolute path. Adding as is
-                    file = line.Substring(1, line.Length - 2); // Removes " "
-                    file = Path.GetFullPath(file); // This should resolve the relative ../ path
-                }
-                else
-                {
-                    errorwarnings.Add(string.Format("Error on RE Directive {0} at line {1}", directive, lineCnt));
-                    break;
-                }
-
-                // I search if already exists in the filesList
-                var match = filesList.FirstOrDefault(stringToCheck => stringToCheck.Contains(file));
-                if (match == null)
-                {
-                    FindAllIncludedCSharpScript(file, ref filesList, ref errorwarnings);
-                }
+                // Relative path. Adding base folder
+                var file = import.Substring(1, import.Length - 2); // Removes < >
+                return Path.GetFullPath(Path.Combine(basePath, file)); // Basepath is Scripts folder
             }
+            else if (import.StartsWith("\"") && import.EndsWith("\""))
+            {
+                // Absolute path. Adding as is
+                var file = import.Substring(1, import.Length - 2); // Removes " "
+                return Path.GetFullPath(file); // This should resolve the relative ../ path
+            }
+            errors.Add($"Error on RE Directive {directive} at line {lineNumber}");
+
+            return null;
         }
 
         /// <summary>
@@ -264,8 +253,8 @@ namespace RazorEnhanced
                 debug = (CheckForceReleaseDirective(path) != true); // If flag is true then debug is false
             }
 
-            List<string> filesList = new() { }; // List of files.
-            FindAllIncludedCSharpScript(path, ref filesList, ref errorwarnings);
+            HashSet<string> filesList = new(StringComparer.InvariantCultureIgnoreCase) { }; // List of files.
+            FindAllIncludedCSharpScript(path, filesList, errorwarnings);
             if (errorwarnings.Count > 0)
             {
                 return true;
@@ -292,7 +281,7 @@ namespace RazorEnhanced
             DateTime stop = DateTime.Now;
             Misc.SendMessage("Script compiled in " + (stop - start).TotalMilliseconds.ToString("F0") + " ms");
 
-            bool has_error = ManageCompileResult(results, ref errorwarnings);
+            bool has_error = ManageCompileResult(results, errorwarnings);
             if (!has_error)
             {
                 assembly = results.CompiledAssembly;
