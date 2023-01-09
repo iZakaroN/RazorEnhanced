@@ -319,7 +319,7 @@ namespace RazorEnhanced
                             Stop();
                             return;
                         } 
-                        csharpEngine.Execute(assembly);
+                        csharpEngine.Execute(fullpath, assembly);
                     }
                     else if (ext.Equals(".uos", StringComparison.InvariantCultureIgnoreCase))
                     {

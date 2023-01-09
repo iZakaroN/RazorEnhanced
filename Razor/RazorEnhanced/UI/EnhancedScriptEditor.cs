@@ -632,7 +632,7 @@ namespace RazorEnhanced.UI
                     }
                     if (assembly != null)
                     {
-                        csharpEngine.Execute(assembly);
+                        csharpEngine.Execute(m_Filepath, assembly);
                     }
                     else
                     {

@@ -128,13 +128,18 @@ namespace RazorEnhanced
         /// <param name="sourceFile">Full path of the source file</param>
         /// <param name="filesList">List of all files that must be compiled (it's a recursive list)</param>
         /// <param name="errors">List of error and warnings</param>
-        private static void FindAllIncludedCSharpScript(string sourceFile, HashSet<string> filesList, List<string> errors)
+        private static void FindAllIncludedCSharpScript(string parentFile, string sourceFile, HashSet<string> filesList, List<string> errors)
         {
+            if (filesList.Contains(sourceFile))
+                return;
             const string directive = "//#import";
 
             if (!File.Exists(sourceFile))
             {
-                errors.Add($"Error on directive {directive}. Unable to find {sourceFile}");
+                if (parentFile != null)
+                    errors.Add($"Error on directive {directive} in '{parentFile}'. Unable to find '{sourceFile}'");
+                else
+                    errors.Add($"Unable to find parent script '{sourceFile}'");
                 return;
             }
 
@@ -147,20 +152,36 @@ namespace RazorEnhanced
             {
                 lineNumber++;
                 // If namespace directive is found stop searching
-                if (line.ToLower().Contains("namespace")) 
+                if (line.ToLower().Contains("namespace"))
                     break;
-                if (line.Contains(directive))
+                if (line.StartsWith(directive))
                 {
                     var import = line.Replace(directive, "").Trim();
                     var file = ExtractFile(import, basePath, directive, lineNumber, errors);
-
-                    if (!filesList.Contains(file))
-                        FindAllIncludedCSharpScript(file, filesList, errors);
+                    var includeFileName = Path.GetFileName(file);
+                    if (ContainsWildcard(includeFileName))
+                    {
+                        var fileDirectory = Path.GetDirectoryName(file) ?? ".";
+                        foreach (var fileName in Directory.EnumerateFiles(fileDirectory, includeFileName, SearchOption.AllDirectories))
+                            if (!SystemDirectory(fileName))
+                                FindAllIncludedCSharpScript(sourceFile, Path.Combine(fileDirectory, fileName), filesList, errors);
+                    }
+                    else
+                        FindAllIncludedCSharpScript(sourceFile, file, filesList, errors);
                 }
             }
 
             // If nothing is found return only the main file
         }
+
+        private static bool SystemDirectory(string fileName)
+        {
+            var directory = Path.GetDirectoryName(fileName) ?? ".";
+            return directory.Contains(@"\obj\") || directory.EndsWith(@"\bin\");
+        }
+
+        private static bool ContainsWildcard(string includeFileName)
+            => includeFileName.Contains("*") || includeFileName.Contains("?");
 
         private static string ExtractFile(string import, string basePath, string directive, int lineNumber, List<string> errors)
         {
@@ -168,17 +189,29 @@ namespace RazorEnhanced
             {
                 // Relative path. Adding base folder
                 var file = import.Substring(1, import.Length - 2); // Removes < >
-                return Path.GetFullPath(Path.Combine(basePath, file)); // Basepath is Scripts folder
+                return GetFullPath(Path.Combine(basePath, file)); // Basepath is Scripts folder
             }
             else if (import.StartsWith("\"") && import.EndsWith("\""))
             {
                 // Absolute path. Adding as is
                 var file = import.Substring(1, import.Length - 2); // Removes " "
-                return Path.GetFullPath(file); // This should resolve the relative ../ path
+                return GetFullPath(file); // This should resolve the relative ../ path
             }
             errors.Add($"Error on RE Directive {directive} at line {lineNumber}");
 
             return null;
+        }
+
+        /// <summary>
+        /// Path.GetFullPath with wildcard support
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        private static string GetFullPath(string path)
+        {
+            var directory = Path.GetDirectoryName(path) ?? ".";
+            var file = Path.GetFileName(path);
+            return Path.Combine(Path.GetFullPath(directory), file);
         }
 
         /// <summary>
@@ -254,7 +287,7 @@ namespace RazorEnhanced
             }
 
             HashSet<string> filesList = new(StringComparer.InvariantCultureIgnoreCase) { }; // List of files.
-            FindAllIncludedCSharpScript(path, filesList, errorwarnings);
+            FindAllIncludedCSharpScript(null, path, filesList, errorwarnings);
             if (errorwarnings.Count > 0)
             {
                 return true;
@@ -273,7 +306,7 @@ namespace RazorEnhanced
 
             CompilerOptions m_opt = new();
             CSharpCodeProvider m_provider = new(m_opt);
-            CompilerParameters m_compileParameters = CompilerSettings(true); 
+            CompilerParameters m_compileParameters = CompilerSettings(true);
 
             m_compileParameters.IncludeDebugInformation = debug;
             CompilerResults results = m_provider.CompileAssemblyFromFile(m_compileParameters, filesList.ToArray()); // Compiling
@@ -289,8 +322,9 @@ namespace RazorEnhanced
             return has_error;
         }
 
-        public void Execute(Assembly assembly)
+        public void Execute(string scriptFile, Assembly assembly)
         {
+            var scriptFileName = Path.GetFileNameWithoutExtension(scriptFile);
             // This is important for methods visibility. Check if all of these flags are really needed.
             BindingFlags bf = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.InvokeMethod;
 
@@ -300,16 +334,16 @@ namespace RazorEnhanced
             int runMethodsFound = 0;
             foreach (Type mt in assembly.GetTypes())
             {
-                if (mt != null)
+                if (mt != null && mt.Name == scriptFileName)
                 {
                     MethodInfo method = mt.GetMethod("Run", bf);
-                    if (method != null) 
+                    if (method != null)
                     {
                         run = method;
                         runMethodsFound++;
                         if (runMethodsFound > 1)
                         {
-                            string error = "Found more than one 'public void Run()' method in script.\nMust be only one Run method.";
+                            string error = $"Found more than one 'public void Run()' method in script '{scriptFileName}'.\nMust be only one Run method.";
                             Misc.SendMessage(error);
                             throw new Microsoft.Scripting.SyntaxErrorException(error, null, new SourceSpan(), 0, Severity.FatalError);
                         }
@@ -323,7 +357,7 @@ namespace RazorEnhanced
             {
                 string error = "Required method 'public void Run()' missing from script.";
                 Misc.SendMessage(error);
-                throw new Microsoft.Scripting.SyntaxErrorException(error,null, new SourceSpan(), 0, Severity.FatalError);
+                throw new Microsoft.Scripting.SyntaxErrorException(error, null, new SourceSpan(), 0, Severity.FatalError);
             }
 
             // Creates an instance of the class runs the Run method
