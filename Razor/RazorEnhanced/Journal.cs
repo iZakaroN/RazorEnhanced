@@ -35,9 +35,11 @@ namespace RazorEnhanced
     {
 
         bool m_Active;
-        internal bool Active { 
-            get { return m_Active; } 
-            set {
+        internal bool Active
+        {
+            get { return m_Active; }
+            set
+            {
                 m_Active = value;
                 if (value)
                 {
@@ -48,7 +50,7 @@ namespace RazorEnhanced
                 {
                     Clear();
                 }
-            } 
+            }
         }
 
         internal static void Enqueue(RazorEnhanced.Journal.JournalEntry entry)
@@ -78,7 +80,7 @@ namespace RazorEnhanced
         internal static List<WeakReference<Journal>> allInstances = new List<WeakReference<Journal>>();
         internal static Journal GlobalJournal = new Journal(100);
 
-        public Journal(int size=100)
+        public Journal(int size = 100)
         {
             m_MaxJournalEntries = size;
             Active = true;
@@ -101,10 +103,10 @@ namespace RazorEnhanced
         }
 
 
-    /// <summary>
-    /// The JournalEntry class rapresents a line in the Journal.
-    /// </summary>
-    public class JournalEntry
+        /// <summary>
+        /// The JournalEntry class rapresents a line in the Journal.
+        /// </summary>
+        public class JournalEntry
         {
             private readonly string m_Text;
             /// <summary>
@@ -156,7 +158,8 @@ namespace RazorEnhanced
 
             private readonly static DateTime UnixTimeBegin = new DateTime(1970, 1, 1);
 
-            public JournalEntry Copy() {
+            public JournalEntry Copy()
+            {
                 return new JournalEntry(this);
             }
 
@@ -255,7 +258,7 @@ namespace RazorEnhanced
         /// <param name="text">Text to block. case insensitive, and will match if the incoming message contains the text</param>
         /// <returns>void</returns>
         public void FilterText(string text)
-        {            
+        {
             Engine.MainWindow.SafeAction(s => { s.JournalFilterDataGrid.Rows.Add(new object[] { text.ToLower() }); });
             Filters.CopyJournalFilterTable();
         }
@@ -374,7 +377,7 @@ namespace RazorEnhanced
             {
                 foreach (JournalEntry entrys in m_journal)
                 {
-                    if (entrys.Text.Contains(text))
+                    if (entrys.Text.IndexOf(text, StringComparison.InvariantCultureIgnoreCase) >= 0)
                     {
                         if (addname)
                             result = entrys.Name + ": " + entrys.Text;
@@ -567,7 +570,7 @@ namespace RazorEnhanced
             int subdelay = delay;
             while (subdelay > 0)
             {
-                foreach(string s in msgs)
+                foreach (string s in msgs)
                 {
                     if (Search(s))
                         return s; // found one of msgs list
