@@ -124,6 +124,7 @@ namespace Assistant
 
         internal static bool OnServerPacket(int id, PacketReader pr, Packet p)
         {
+            System.Diagnostics.Debug.WriteLine($"S: 0x{id:x8}");
             bool result = false;
             if (pr != null)
             {
@@ -146,6 +147,7 @@ namespace Assistant
 
         internal static bool OnClientPacket(int id, PacketReader pr, Packet p)
         {
+            System.Diagnostics.Debug.WriteLine($"C: 0x{id:x8}");
             bool result = false;
             if (pr != null)
             {

@@ -36,7 +36,8 @@ namespace Assistant
             PacketHandler.RegisterClientToServerFilter(0x80, new PacketFilterCallback(ServerListLogin));
             PacketHandler.RegisterClientToServerFilter(0x91, new PacketFilterCallback(GameLogin));
             PacketHandler.RegisterClientToServerViewer(0x95, new PacketViewerCallback(HueResponse));
-            PacketHandler.RegisterClientToServerViewer(0x9A, new PacketViewerCallback(ClientAsciiPromptResponse));
+            //PacketHandler.RegisterClientToServerViewer(0x9A, new PacketViewerCallback(ClientAsciiPromptResponse));
+            PacketHandler.RegisterClientToServerViewer(0x9A, new PacketViewerCallback(AsciiPromptSend));
             PacketHandler.RegisterClientToServerViewer(0xA0, new PacketViewerCallback(PlayServer));
             PacketHandler.RegisterClientToServerViewer(0xAC, new PacketViewerCallback(ResponseStringQuery));
             PacketHandler.RegisterClientToServerViewer(0xB1, new PacketViewerCallback(ClientGumpResponse));
@@ -82,7 +83,8 @@ namespace Assistant
             PacketHandler.RegisterServerToClientViewer(0x7C, new PacketViewerCallback(SendMenu));
             PacketHandler.RegisterServerToClientViewer(0x90, new PacketViewerCallback(MapDetails));
             PacketHandler.RegisterServerToClientViewer(0x97, new PacketViewerCallback(MovementDemand));
-            PacketHandler.RegisterServerToClientViewer(0x9A, new PacketViewerCallback(AsciiPromptResponse));
+            PacketHandler.RegisterServerToClientViewer(0x9A, new PacketViewerCallback(AsciiPromptReceived));
+            //PacketHandler.RegisterServerToClientViewer(0x9A, new PacketViewerCallback(UnicodePromptReceived));
             PacketHandler.RegisterServerToClientViewer(0xA1, new PacketViewerCallback(HitsUpdate));
             PacketHandler.RegisterServerToClientViewer(0xA2, new PacketViewerCallback(ManaUpdate));
             PacketHandler.RegisterServerToClientViewer(0xA3, new PacketViewerCallback(StamUpdate));
@@ -97,8 +99,9 @@ namespace Assistant
             PacketHandler.RegisterServerToClientViewer(0xBC, new PacketViewerCallback(ChangeSeason));
             PacketHandler.RegisterServerToClientViewer(0xBF, new PacketViewerCallback(ExtendedPacket));
             PacketHandler.RegisterServerToClientFilter(0xC1, new PacketFilterCallback(OnLocalizedMessage));
-            PacketHandler.RegisterServerToClientViewer(0xC2, new PacketViewerCallback(UnicodePromptRecevied));
+            PacketHandler.RegisterServerToClientViewer(0xC2, new PacketViewerCallback(UnicodePromptReceived));
             PacketHandler.RegisterServerToClientFilter(0xC8, new PacketFilterCallback(SetUpdateRange));
+            //PacketHandler.RegisterServerToClientViewer(0xC9, new PacketViewerCallback(UnicodePromptReceived));
             PacketHandler.RegisterServerToClientFilter(0xCC, new PacketFilterCallback(OnLocalizedMessageAffix));
             PacketHandler.RegisterServerToClientViewer(0xD6, new PacketViewerCallback(EncodedPacket));//0xD6 "encoded" packets
             PacketHandler.RegisterServerToClientViewer(0xD8, new PacketViewerCallback(CustomHouseInfo));
@@ -1263,17 +1266,6 @@ namespace Assistant
             }
         }
 
-        private static void AsciiPromptResponse(PacketReader p, PacketHandlerEventArgs args)
-        {
-            //int serial = (int)p.ReadUInt32();
-            //int id = (int)p.ReadUInt32();
-            //int type = (int)p.ReadUInt32();
-            //string message = p.ReadString();
-
-            if (World.Player != null)
-                World.Player.HasPrompt = false;
-        }
-
         private static void UnicodePromptSend(PacketReader p, PacketHandlerEventArgs args)
         {
             if (World.Player == null)
@@ -1287,12 +1279,50 @@ namespace Assistant
             World.Player.PromptSenderSerial = serial;
             World.Player.PromptID = id;
             World.Player.PromptType = type;
+            World.Player.PromptIsUnicode = true;
 
-            //string lang = p.ReadStringSafe(4);
-            //string message = p.ReadUnicodeStringSafe();
+            string lang = p.ReadStringSafe(4);
+            string text = p.ReadUnicodeStringSafe();
+            if (RazorEnhanced.ScriptRecorder.OnRecord)
+                RazorEnhanced.ScriptRecorder.instance().Record_AsciiPromptResponse(type, text);
+
         }
 
-        private static void UnicodePromptRecevied(PacketReader p, PacketHandlerEventArgs args)
+        private static void AsciiPromptSend(PacketReader p, PacketHandlerEventArgs args)
+        {
+            if (World.Player == null)
+                return;
+
+            uint serial = p.ReadUInt32();
+            uint id = p.ReadUInt32();
+            uint type = p.ReadUInt32();
+
+            World.Player.HasPrompt = false;
+            World.Player.PromptSenderSerial = serial;
+            World.Player.PromptID = id;
+            World.Player.PromptType = type;
+            World.Player.PromptIsUnicode = false;
+
+            string text = p.ReadStringSafe();
+            if (RazorEnhanced.ScriptRecorder.OnRecord)
+                RazorEnhanced.ScriptRecorder.instance().Record_AsciiPromptResponse(type, text);
+        }
+
+        private static void ClientAsciiPromptResponse(PacketReader p, PacketHandlerEventArgs args)
+        {
+            if (!RazorEnhanced.ScriptRecorder.OnRecord)
+                return;
+
+            p.ReadUInt32(); // sender serial
+            p.ReadUInt32(); // Prompt ID
+            uint type = p.ReadUInt32(); // type
+            string text = p.ReadStringSafe();
+            RazorEnhanced.ScriptRecorder.instance().Record_AsciiPromptResponse(type, text);
+        }
+
+
+
+        private static void UnicodePromptReceived(PacketReader p, PacketHandlerEventArgs args)
         {
             if (World.Player == null)
                 return;
@@ -1309,6 +1339,25 @@ namespace Assistant
             //string lang = p.ReadStringSafe(4);
             //string message = p.ReadUnicodeStringSafe();
         }
+
+        private static void AsciiPromptReceived(PacketReader p, PacketHandlerEventArgs args)
+        {
+            if (World.Player == null)
+                return;
+
+            uint serial = p.ReadUInt32();
+            uint id = p.ReadUInt32();
+            uint type = p.ReadUInt32();
+
+            World.Player.HasPrompt = true;
+            World.Player.PromptSenderSerial = serial;
+            World.Player.PromptID = id;
+            World.Player.PromptType = type;
+
+            //string lang = p.ReadStringSafe(4);
+            //string message = p.ReadStringSafe();
+        }
+
 
         private static readonly int[] HealthHues = new int[] { 428, 333, 37, 44, 49, 53, 158, 263, 368, 473, 578 };
 
@@ -3233,18 +3282,6 @@ namespace Assistant
                 HueEntry.Callback(serial, iid, hue);
             }
 
-        }
-
-        private static void ClientAsciiPromptResponse(PacketReader p, PacketHandlerEventArgs args)
-        {
-            if (!RazorEnhanced.ScriptRecorder.OnRecord)
-                return;
-
-            p.ReadUInt32(); // sender serial
-            p.ReadUInt32(); // Prompt ID
-            uint type = p.ReadUInt32(); // type
-            string text = p.ReadUnicodeStringSafe();
-            RazorEnhanced.ScriptRecorder.instance().Record_AsciiPromptResponse(type, text);
         }
 
         private static void ResyncRequest(PacketReader p, PacketHandlerEventArgs args)

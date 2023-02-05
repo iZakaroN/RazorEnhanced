@@ -953,6 +953,11 @@ namespace Assistant
                 | ((ulong)ReadByte() << 56));
         }
 
+        internal ushort ReadUnicodeChar()
+        {
+            return (ushort)(ReadByte() | (ReadByte() << 8));
+        }
+
         internal ushort ReadUInt16()
         {
             return (ushort)((ReadByte() << 8) | ReadByte());
@@ -986,7 +991,7 @@ namespace Assistant
 
             int c;
 
-            while ((c = ReadUInt16()) != 0)
+            while ((c = ReadUnicodeChar()) != 0)
             {
                 if (IsSafeChar(c))
                     sb.Append((char)c);
@@ -1001,7 +1006,7 @@ namespace Assistant
 
             int c;
 
-            while ((c = ReadUInt16()) != 0)
+            while ((c = ReadUnicodeChar()) != 0)
                 sb.Append((char)c);
 
             return sb.ToString();

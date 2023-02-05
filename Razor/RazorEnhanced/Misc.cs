@@ -715,7 +715,14 @@ namespace RazorEnhanced
         /// </summary>
         public static void CancelPrompt()
         {
-            Assistant.Client.Instance.SendToServerWait(new PromptResponse(World.Player.PromptSenderSerial, World.Player.PromptID, 0, Language.CliLocName, String.Empty));
+            Assistant.Client.Instance.SendToServerWait(
+                new PromptResponse(
+                    World.Player.PromptSenderSerial, 
+                    World.Player.PromptID, 
+                    0, 
+                    Language.CliLocName, 
+                    String.Empty,
+                    World.Player.PromptIsUnicode));
             World.Player.HasPrompt = false;
         }
 
@@ -725,7 +732,14 @@ namespace RazorEnhanced
         /// <param name="text">Text of the response.</param>
         public static void ResponsePrompt(string text)
         {
-            Assistant.Client.Instance.SendToServerWait(new PromptResponse(World.Player.PromptSenderSerial, World.Player.PromptID, 1, Language.CliLocName, text));
+            Assistant.Client.Instance.SendToServerWait(
+                new PromptResponse(
+                    World.Player.PromptSenderSerial, 
+                    World.Player.PromptID, 
+                    1, 
+                    Language.CliLocName, 
+                    text,
+                    World.Player.PromptIsUnicode));
             World.Player.HasPrompt = false;
         }
 

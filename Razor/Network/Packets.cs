@@ -1695,7 +1695,7 @@ namespace Assistant
                     WriteLittleUniFixed(i.Args, i.Args.Length);
                 }
             }
-           Write((uint)0);
+            Write((uint)0);
         }
 
     }
@@ -1943,8 +1943,8 @@ namespace Assistant
 
     internal sealed class PromptResponse : Packet
     {
-        internal PromptResponse(uint serial, uint promptid, uint operation, string lang, string text)
-            : base(0xC2)
+        internal PromptResponse(uint serial, uint promptid, uint operation, string lang, string text, bool unicode)
+            : base(ResponseCode(unicode))
         {
             if (text != "")
                 EnsureCapacity(2 + 4 + 4 + 4 + 4 + (text.Length * 2));
@@ -1959,12 +1959,18 @@ namespace Assistant
 
             if (string.IsNullOrEmpty(lang))
                 lang = "ENU";
-
-            WriteAsciiFixed(lang.ToUpper(), 4);
+            if (unicode)
+                WriteAsciiFixed(lang.ToUpper(), 4);
 
             if (text != "")
-                WriteLittleUniNull(text);
+                if (unicode)
+                    WriteLittleUniNull(text);
+                else 
+                    WriteAsciiNull(text);
         }
+
+        private static byte ResponseCode(bool unicode)
+            => unicode ? (byte)0xC2 : (byte)0x9A;
     }
 
     internal sealed class RenameRequest : Packet
