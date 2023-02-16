@@ -1335,6 +1335,7 @@ namespace Assistant
             World.Player.PromptSenderSerial = serial;
             World.Player.PromptID = id;
             World.Player.PromptType = type;
+            World.Player.PromptIsUnicode = true;
 
             //string lang = p.ReadStringSafe(4);
             //string message = p.ReadUnicodeStringSafe();
@@ -1353,6 +1354,7 @@ namespace Assistant
             World.Player.PromptSenderSerial = serial;
             World.Player.PromptID = id;
             World.Player.PromptType = type;
+            World.Player.PromptIsUnicode = false;
 
             //string lang = p.ReadStringSafe(4);
             //string message = p.ReadStringSafe();
