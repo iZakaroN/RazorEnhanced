@@ -31,6 +31,7 @@ namespace Assistant
 
     internal class PacketHandler
     {
+        private static readonly bool Diagnostic = false;
         private static readonly ConcurrentDictionary<int, List<PacketViewerCallback>> m_ClientViewers;
         private static readonly ConcurrentDictionary<int, List<PacketViewerCallback>> m_ServerViewers;
 
@@ -124,7 +125,8 @@ namespace Assistant
 
         internal static bool OnServerPacket(int id, PacketReader pr, Packet p)
         {
-            System.Diagnostics.Debug.WriteLine($"S: 0x{id:x8}");
+            if (Diagnostic)
+                System.Diagnostics.Debug.WriteLine($"S: 0x{id:x8}");
             bool result = false;
             if (pr != null)
             {
@@ -147,7 +149,8 @@ namespace Assistant
 
         internal static bool OnClientPacket(int id, PacketReader pr, Packet p)
         {
-            System.Diagnostics.Debug.WriteLine($"C: 0x{id:x8}");
+            if (Diagnostic)
+                System.Diagnostics.Debug.WriteLine($"C: 0x{id:x8}");
             bool result = false;
             if (pr != null)
             {
