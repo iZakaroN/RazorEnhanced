@@ -41,7 +41,7 @@ namespace RazorEnhanced
             set
             {
                 m_Active = value;
-                if (value)
+                if (value && _general)
                 {
                     if (GlobalJournal != null)
                         m_journal = new ConcurrentQueue<RazorEnhanced.Journal.JournalEntry>(GlobalJournal.m_journal); // clone global list at activate
@@ -71,18 +71,22 @@ namespace RazorEnhanced
                     needsCleanup = true;
             }
             if (needsCleanup)
-                allInstances.RemoveAll(wr => wr.TryGetTarget(out var el) && el == null);
+                allInstances.RemoveAll(wr => !wr.TryGetTarget(out var el) || el == null);
         }
 
         internal ConcurrentQueue<RazorEnhanced.Journal.JournalEntry> m_journal;
         internal int m_MaxJournalEntries;
+        public readonly string Name;
+        private readonly bool _general;
 
         internal static List<WeakReference<Journal>> allInstances = new List<WeakReference<Journal>>();
         internal static Journal GlobalJournal = new Journal(100);
 
-        public Journal(int size = 100)
+        public Journal(int size = 100, string name = null, bool general = true)
         {
             m_MaxJournalEntries = size;
+            Name = name;
+            _general = general;
             Active = true;
             allInstances.Add(new WeakReference<Journal>(this));
 
