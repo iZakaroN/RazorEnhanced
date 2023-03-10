@@ -805,6 +805,11 @@ namespace RazorEnhanced
         }
 
         /// <summary>
+        /// Define if equipment color reflect mobile status (Poison, Paralyzed, Mortal Wounds)
+        /// </summary>
+        public static bool StatusColorEquipment { get; set; } = false;
+
+        /// <summary>
         /// Check if a buff is active, by buff name.
         /// </summary>
         /// <param name="buffname">

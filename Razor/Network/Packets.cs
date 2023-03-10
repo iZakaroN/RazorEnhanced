@@ -1073,7 +1073,7 @@ namespace Assistant
                 else if (m.Blessed) // Caso Mortal
                     hue = (int)RazorEnhanced.Filters.HighLightColor.Mortal;
                 else if (m.Paralized) // Caso Paral
-                    hue = (int)RazorEnhanced.Filters.HighLightColor.Paralized;
+                    hue = (int)RazorEnhanced.Filters.HighLightColor.Paralyzed;
             }
 
             EnsureCapacity(3 + 4 + 2 + 2 + 2 + 1 + 1 + 2 + 1 + 1 + 4 + count * (4 + 2 + 1 + 2));
@@ -1102,7 +1102,7 @@ namespace Assistant
                     else if (m.Blessed) // Caso Mortal
                         hue = (int)RazorEnhanced.Filters.HighLightColor.Mortal;
                     else if (m.Paralized) // Caso Paral
-                        hue = (int)RazorEnhanced.Filters.HighLightColor.Paralized;
+                        hue = (int)RazorEnhanced.Filters.HighLightColor.Paralyzed;
                     else
                         Write((ushort)item.Hue);
                 }

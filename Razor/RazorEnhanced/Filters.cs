@@ -1,12 +1,12 @@
 using Assistant;
 using Assistant.UI;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Windows.Forms;
 using System.IO;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 
 namespace RazorEnhanced
@@ -100,11 +100,11 @@ namespace RazorEnhanced
                     Mobiles.Message(m.Serial, 10, "[Mortalled]", false);
             }
 
-        /*  if (Engine.MainWindow.HighlightTargetCheckBox.Checked)
-            {
-                if (Targeting.IsLastTarget(m))
-                    Mobiles.Message(m.Serial, 10, "*[Target]*", false);
-            }*/
+            /*  if (Engine.MainWindow.HighlightTargetCheckBox.Checked)
+                {
+                    if (Targeting.IsLastTarget(m))
+                        Mobiles.Message(m.Serial, 10, "*[Target]*", false);
+                }*/
         }
         //////////////////// END - FLAG HIGHLIGHT //////////////////////
 
@@ -142,7 +142,7 @@ namespace RazorEnhanced
             foreach (DataGridViewRow gridRow in Assistant.Engine.MainWindow.JournalFilterDataGrid.Rows)
             {
                 if (gridRow.IsNewRow)
-                    continue;                
+                    continue;
                 Settings.JournalFilter.Insert(gridRow.Cells[0].Value.ToString());
             }
             Settings.Save();
@@ -209,8 +209,8 @@ namespace RazorEnhanced
             color = 0;
             foreach (GraphChangeData graphdata in m_graphfilterdata)
             {
-                if (! graphdata.Selected)
-                    continue; 
+                if (!graphdata.Selected)
+                    continue;
                 if (body != graphdata.GraphReal)
                     continue;
 
@@ -450,7 +450,7 @@ namespace RazorEnhanced
         internal enum HighLightColor : ushort
         {
             Poison = 0x0042,
-            Paralized = 0x013C,
+            Paralyzed = 0x013C,
             Mortal = 0x002E,
             BloodOath = 0x0026
         }
@@ -498,6 +498,7 @@ namespace RazorEnhanced
                 Assistant.Client.Instance.SendToClient(new EquipmentItem(i, i.Hue, m.Serial));
             }
         }
+        private static readonly ConcurrentDictionary<int, int> ColoredMobiles = new ConcurrentDictionary<int, int>();
         internal static void ApplyColor(Assistant.Mobile m)
         {
             if (m.IsGhost) // Non eseguire azione se fantasma
@@ -507,25 +508,30 @@ namespace RazorEnhanced
             if (m.Poisoned)
                 color = (int)HighLightColor.Poison;
             else if (m.Paralized)
-                color = (int)HighLightColor.Paralized;
+                color = (int)HighLightColor.Paralyzed;
             else if (m.Blessed) // Mortal
                 color = (int)HighLightColor.Mortal;
-            else if (m == World.Player && Player.BuffsExist("Bload Oath (curse)"))
+            else if (m == World.Player && Player.BuffsExist("Blood Oath (curse)"))
                 color = (int)HighLightColor.BloodOath;
             else
             {
-                Decolorize(m);
+                if (ColoredMobiles.TryRemove(m.Serial, out _))
+                    Decolorize(m);
                 return;
             }
 
             // Apply color for valid flag
-            foreach (Layer l in m_colorized_layer)
+            if (Player.StatusColorEquipment)
             {
-                Assistant.Item i = m.GetItemOnLayer(l);
-                if (i == null)
-                    continue;
+                ColoredMobiles.TryAdd(m.Serial, m.Serial);
+                foreach (Layer l in m_colorized_layer)
+                {
+                    Assistant.Item i = m.GetItemOnLayer(l);
+                    if (i == null)
+                        continue;
 
-                Assistant.Client.Instance.SendToClient(new EquipmentItem(i, (ushort)color, m.Serial));
+                    Assistant.Client.Instance.SendToClient(new EquipmentItem(i, (ushort)color, m.Serial));
+                }
             }
         }
 
@@ -547,7 +553,7 @@ namespace RazorEnhanced
                         p = RewriteColorAndFlag(p, (ushort)HighLightColor.Poison);
 
                     else if (m.Paralized)
-                        p = RewriteColorAndFlag(p, (ushort)HighLightColor.Paralized);
+                        p = RewriteColorAndFlag(p, (ushort)HighLightColor.Paralyzed);
 
                     else if (m.Blessed) // Mortal
                         p = RewriteColorAndFlag(p, (ushort)HighLightColor.Mortal);
@@ -572,7 +578,7 @@ namespace RazorEnhanced
                             p = RewriteColor(p, (ushort)HighLightColor.Poison);
 
                         else if (m.Paralized)
-                            p = RewriteColor(p, (ushort)HighLightColor.Paralized);
+                            p = RewriteColor(p, (ushort)HighLightColor.Paralyzed);
 
                         else if (m.Blessed) // Mortal
                             p = RewriteColor(p, (ushort)HighLightColor.Mortal);
@@ -594,7 +600,7 @@ namespace RazorEnhanced
                     if (m.Poisoned)
                         color = (int)HighLightColor.Poison;
                     else if (m.Paralized)
-                        color = (int)HighLightColor.Paralized;
+                        color = (int)HighLightColor.Paralyzed;
                     else if (m.Blessed) // Mortal
                         color = (int)HighLightColor.Mortal;
 
@@ -622,7 +628,7 @@ namespace RazorEnhanced
                             p = RewriteColor(p, (ushort)HighLightColor.Poison);
 
                         else if (m.Paralized)
-                            p = RewriteColor(p, (ushort)HighLightColor.Paralized);
+                            p = RewriteColor(p, (ushort)HighLightColor.Paralyzed);
 
                         else if (m.Blessed) // Mortal
                             p = RewriteColor(p, (ushort)HighLightColor.Mortal);
