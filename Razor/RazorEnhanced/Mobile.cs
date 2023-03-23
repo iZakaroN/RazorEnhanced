@@ -406,7 +406,7 @@ namespace RazorEnhanced
         }
 
         /// <summary>
-        /// Get all properties of a Mobile as list of lines of the tooltip.
+        /// Get all properties of a Mobile.
         /// </summary>
         public List<Property> Properties
         {

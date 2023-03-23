@@ -173,7 +173,7 @@ namespace RazorEnhanced
         /// <param name="y">Y coordinate.</param>
         /// <param name="display">True = On, False = off</param>
         /// <param name="target">object serial targeted</param>
-        public static void TrackingArrow(ushort x, ushort y, bool display, uint target=0)
+        public static void TrackingArrow(ushort x, ushort y, bool display, uint target = 0)
         {
             if (target == 0)
                 target = (uint)Player.Serial;
@@ -2203,7 +2203,7 @@ namespace RazorEnhanced
         /// </param>
         /// <param name="run">True: True - use run api, false use walk api</param>
         /// <returns>True: Destination reached - False: Coudn't reach the destination.</returns>
-        internal static bool Move(string direction, bool run=true)    // Return true if walk ok false refused by the server
+        internal static bool Move(string direction, bool run = true)    // Return true if walk ok false refused by the server
         {
             if (!Enum.TryParse<Direction>(direction.ToLower(), out Direction dir))
             {
@@ -2294,7 +2294,7 @@ namespace RazorEnhanced
         public static void OpenPaperDoll()
         {
             Assistant.Client.Instance.SendToServerWait(new DisplayPaperdoll(World.Player.Serial));
-        } 
+        }
 
         /// <summary>
         /// Press the Quest menu button in the paperdoll.
@@ -2539,5 +2539,12 @@ namespace RazorEnhanced
             }
             return 0;  // Non esiste
         }
+
+        /// <summary>
+        /// Get all properties of the Player.
+        /// </summary>
+        public static List<Property> Properties 
+            => World.Player.ObjPropList.Content
+                .Select(entry => new Property(entry)).ToList();
     }
 }
